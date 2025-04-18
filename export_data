@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Параметры подключения к БД
+DB_HOST="localhost"
+DB_PORT="5432"
+DB_NAME="genome"
+DB_USER="postgres"
+DB_PASSWORD='P@$$w0rd'
+
+# Файл для сохранения результатов
+OUTPUT_FILE="nodes_data.csv"
+
+# SQL-запрос
+SQL_QUERY="SELECT 
+n.hostname, 
+n.ip, 
+i.host AS ipmi_ip, 
+i.login AS user, 
+i.password
+FROM 
+nodes n
+LEFT JOIN 
+ipmi i ON n.ipmi_id = i.id
+LIMIT 100;"
+
+# Экспорт переменной с паролем
+export PGPASSWORD="$DB_PASSWORD"
+
+# Выполняем запрос (все параметры в одной строке без обратных слешей)
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "$SQL_QUERY" -o "$OUTPUT_FILE" --csv -A -F ';' -t -P "footer=off"
+
+# Проверяем результат
+if [ $? -eq 0 ]; then
+    echo "Данные успешно сохранены в файл: $OUTPUT_FILE"
+    records=$(wc -l < "$OUTPUT_FILE")
+    echo "Количество записей: $records"
+else
+    echo "Ошибка при выполнении запроса" >&2
+    exit 1
+fi
+
+# Очищаем переменную
+unset PGPASSWORD
